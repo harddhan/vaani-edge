@@ -1,124 +1,61 @@
-# Vaani Architecture
+# Architecture
 
-## system overview
+## Overview
 
-Vaani is designed as a local voice activation pipeline where audio is captured, processed and classified directly on the edge device. The system should keep the path from microphone input to wake word detection as short and efficient as possible.
+VAANI is an edge-first voice activation pipeline. Audio is continuously captured locally and evaluated by a lightweight keyword-spotting model. Only after the custom keyword is detected does the system open a LAN session and stream the following audio to the server for ASR.
 
-The overall flow is:
-
-```text
-Microphone
-    ↓
-Audio Capture
-    ↓
-Audio Buffer
-    ↓
-Preprocessing
-    ↓
-Feature Extraction
-    ↓
-TinyML Inference
-    ↓
-Decision
-    ↓
-Trigger
+```mermaid
+flowchart LR
+    Mic["Microphone"] --> Cap["audio_capture\n16 kHz mono PCM"]
+    Cap --> Ring["ring_buffer\npre-roll retention"]
+    Ring --> Feat["feature_extractor\nMFCC"]
+    Feat --> KWS["kws_inference\nINT8 TFLite Micro"]
+    KWS --> Trig["trigger_state_machine"]
+    Trig -- keyword detected --> Stream["lan_transport\nWebSocket/TCP"]
+    Stream --> Server["Python server"]
+    Server --> ASR["ASR backend"]
+    ASR --> Server
+    Server -- ASR_RESULT --> Stream
 ```
 
-The exact hardware and model will be finalized after testing different options.
+## Component responsibilities
 
-## 1. audio acquisition
+| Layer | Component | Responsibility | Status |
+|---|---|---|---|
+| Firmware | `audio_capture` | Provide mono int16 PCM through `audio_read()` | Hardware integration pending |
+| Firmware | `ring_buffer` | Maintain rolling audio and pre-roll | Implemented |
+| Firmware | `feature_extractor` | Generate model input features | Implementation pending numerical parity validation |
+| Firmware | `kws_inference` | Run embedded INT8 model | Integration pending |
+| Firmware | `trigger_state_machine` | Threshold, consecutive positives, cooldown | Implemented |
+| Firmware | `lan_transport` | Wi-Fi and WebSocket transport | Integration pending |
+| Firmware | `runtime_metrics` | Runtime measurement instrumentation | Partial; hardware validation pending |
+| Server | `server/main.py` | Session lifecycle, validation, ASR orchestration | Implemented |
+| Server | `server/asr/*` | Pluggable ASR backend | Implemented |
+| ML | `ml/*` | Dataset preparation, training, evaluation, quantization | Implemented |
 
-The microphone continuously provides audio to the edge device. The audio acquisition layer is responsible for configuring the microphone interface, collecting samples at the required sampling rate and maintaining the buffers needed by the processing pipeline.
+## Data flow
 
-The choice of microphone and interface will depend on factors such as audio quality, hardware compatibility, power consumption and implementation complexity.
+1. `audio_capture_task` continuously fills the ring buffer.
+2. `kws_task` evaluates the latest approximately one-second audio window.
+3. The feature extractor produces the fixed `50 x 13 x 1` MFCC tensor used by the current model.
+4. The INT8 KWS model produces four class scores: `speech`, `noise`, `silence`, and `vaani`.
+5. `TriggerStateMachine` requires the configured confidence threshold for consecutive windows.
+6. After a trigger, the streaming path sends a session start, retained pre-roll, live audio, and a session end.
+7. The Python server reconstructs the received PCM and invokes the configured ASR backend.
+8. The server returns an `ASR_RESULT` or `ERROR`.
+9. The firmware returns to listening after the session/cooldown path completes.
 
-## 2. audio buffering
+## Design principles
 
-Incoming audio needs to be stored temporarily before it can be processed. Vaani will use a small rolling audio buffer so that the system can examine recent audio without storing unnecessary amounts of data.
+- KWS runs locally; continuous raw audio is not sent to the server.
+- The network path is separated from audio capture.
+- Audio buffering is bounded.
+- The model is quantized to INT8 before firmware embedding.
+- The Python pipeline is the reference for model training.
+- Hardware resource claims are made only after measurement on the target board.
 
-The buffer size and processing window will be selected based on the requirements of the final ML model.
+## Current implementation boundary
 
-## 3. preprocessing
+The desktop simulation and Python server provide the current end-to-end development path. The ESP32-S3 firmware directory is retained as the hardware integration target, but it is not presented as fully validated firmware.
 
-The captured audio will be prepared before feature extraction and inference. Depending on the final approach, this stage may include operations such as normalization, filtering, framing and windowing.
-
-The preprocessing pipeline should remain lightweight because it will run continuously on the edge device.
-
-## 4. feature extraction
-
-Raw audio is usually not the most efficient input representation for a small ML model. Vaani will therefore extract useful characteristics from the audio before inference.
-
-The final feature representation will be selected after comparing suitable approaches for accuracy, computational cost, memory usage and latency.
-
-## 5. TinyML inference
-
-The extracted features are passed to a lightweight machine learning model running directly on the edge device.
-
-The model will classify the incoming audio and estimate whether the target wake word is present. The model should be small enough to fit within the available memory and computational limits of the selected hardware.
-
-## 6. decision layer
-
-The model output should not necessarily result in an immediate trigger from a single prediction. Vaani can use a decision layer to interpret model confidence and reduce accidental activations.
-
-The exact decision logic will be determined through experimentation with different thresholds and detection strategies.
-
-## 7. trigger
-
-When the system determines that the target wake word has been detected, it generates a trigger event.
-
-The trigger could be used to start another process or control an external function depending on the final prototype design.
-
-## data flow
-
-The system can be viewed as three main sections:
-
-```text
-INPUT
-Microphone
-    ↓
-Audio samples
-
-PROCESSING
-Audio buffer
-    ↓
-Preprocessing
-    ↓
-Feature extraction
-    ↓
-TinyML inference
-
-OUTPUT
-Wake word detected
-    ↓
-Trigger action
-```
-
-The main design goal is to keep this entire path local to the device.
-
-## performance considerations
-
-Every stage contributes to the final system performance. A model that is accurate but slow may not be suitable, while a very small model that produces too many false activations is also not useful.
-
-Vaani will therefore evaluate the complete pipeline rather than optimizing only the ML model.
-
-Important measurements include:
-
-- End to end detection latency
-- Inference time
-- RAM usage
-- Model size
-- Audio processing cost
-- Power consumption
-- Detection accuracy
-- False activations
-- Performance under background noise
-
-## architecture decisions
-
-The architecture is intentionally not completely fixed at this stage. Hardware, audio processing parameters and model design will be selected based on experiments.
-
-Any major changes to the architecture and the reasons behind them will be documented as development continues.
-
-## current architecture status
-
-The current architecture is a proposed baseline and will evolve as the first software and hardware experiments are completed.
+The main remaining hardware-side work is real microphone capture, TFLite Micro inference integration, WebSocket interoperability, feature numerical parity, and RAM/CPU/latency measurement.
