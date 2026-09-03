@@ -1,0 +1,39 @@
+keyword:
+  custom_keyword: vaani
+  labels:
+    - speech
+    - noise
+    - silence
+    - vaani
+
+features:
+  type: mfcc
+  sample_rate_hz: 16000
+  n_fft: 256
+  window_length_ms: 32
+  hop_length_ms: 20
+  n_mels: 40
+  n_mfcc: 13
+  fmin_hz: 300
+  fmax_hz: 8000
+  pre_emphasis: 0.98
+  num_frames: 50
+  normalize: train_mean_std
+
+model:
+  architecture: ds_cnn
+  input_shape: [50, 13, 1]
+  num_classes: 4
+  dropout: 0.2
+
+training:
+  batch_size: 32
+  epochs: 40
+  learning_rate: 0.001
+  early_stopping_patience: 8
+  seed: 1337
+
+detection:
+  default_threshold: 0.80
+  consecutive_positive_windows: 3
+  cooldown_ms: 1500

@@ -1,0 +1,14 @@
+audio:
+  sample_rate_hz: 16000
+  channels: 1
+  sample_format: int16
+  endianness: little
+
+  frame_duration_ms: 30
+  pre_roll_ms: 800
+  max_stream_duration_ms: 8000
+
+  ring_buffer_samples: 32000
+
+  silence_rms_threshold: 200
+  silence_hang_ms: 500

@@ -1,0 +1,17 @@
+includes:
+  - audio.yaml
+  - model.yaml
+  - network.yaml
+
+logging:
+  level: INFO
+
+paths:
+  dataset_dir: data/processed
+  raw_dataset_dir: data/raw
+  artifacts_dir: ml/artifacts
+  reports_dir: reports
+
+asr:
+  backend: mock
+  model_size: tiny

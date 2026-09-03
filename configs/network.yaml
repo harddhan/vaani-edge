@@ -1,0 +1,16 @@
+network:
+  server_host: 0.0.0.0
+  server_port: 8765
+  server_address_for_client: 192.168.1.100
+
+  protocol_magic: VANI
+  protocol_version: 1
+
+  max_message_size_bytes: 65536
+  max_session_buffer_bytes: 8388608
+  session_timeout_s: 15
+  connect_timeout_s: 5
+  reconnect_backoff_s: [1, 2, 5]
+
+  tcp_send_buffer_bytes: 4096
+  tcp_recv_buffer_bytes: 2048
