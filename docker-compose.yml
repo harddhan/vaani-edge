@@ -1,0 +1,12 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vaani-server:local
+    ports:
+      - "8765:8765"
+    volumes:
+      - ./configs:/app/configs:ro
+      - ./reports:/app/reports
+    command: ["python3", "-m", "server.main", "--log-level", "INFO"]

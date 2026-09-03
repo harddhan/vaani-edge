@@ -1,0 +1,15 @@
+[project]
+name = "vaani"
+version = "0.1.0"
+description = "TinyML voice activation system with keyword spotting and LAN communication."
+requires-python = ">=3.10"
+readme = "README.md"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+
+[tool.setuptools]
+packages = ["ml", "server", "desktop"]

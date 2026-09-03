@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ML artifacts
+ml/artifacts/*
+!ml/artifacts/.gitkeep
+
+# Dataset
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/README.md
+!data/recordings_manifest.example.csv
+
+# Reports
+reports/*
+!reports/.gitkeep
+!reports/README.md
+
+# ESP-IDF
+firmware/esp32s3/build/
+firmware/esp32s3/sdkconfig
+firmware/esp32s3/managed_components/
+firmware/esp32s3/dependencies.lock
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
