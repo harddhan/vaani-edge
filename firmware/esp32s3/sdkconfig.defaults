@@ -1,0 +1,29 @@
+# Reference sdkconfig defaults for the ESP32-S3.
+# This is a STARTING POINT - the hardware teammate should tune these
+# (especially PSRAM, Wi-Fi buffer counts, and task stack sizes) once
+# real hardware and the microphone module are integrated.
+
+CONFIG_IDF_TARGET="esp32s3"
+
+# Enable PSRAM if the board has it - the tensor arena and network buffers
+# may need it depending on final model size. To be confirmed on hardware.
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_USE_MALLOC=y
+
+# FreeRTOS tick rate - 1000Hz gives finer-grained timing for latency
+# measurement at the cost of slightly higher scheduler overhead.
+CONFIG_FREERTOS_HZ=1000
+
+# Wi-Fi buffer configuration - reference values, tune based on measured
+# throughput/latency requirements.
+CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM=10
+CONFIG_ESP_WIFI_DYNAMIC_RX_BUFFER_NUM=32
+
+# Main task stack size - the app_main task spawns the real worker tasks
+# with their own explicit stack sizes (see app_main.cpp); this only needs
+# to cover initialization.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
+
+# Enable C++ exceptions (used sparingly, mainly for TFLite Micro's
+# ErrorReporter interop) - confirm this is still needed once integrated.
+CONFIG_COMPILER_CXX_EXCEPTIONS=y
